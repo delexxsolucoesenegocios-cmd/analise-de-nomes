@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Análise de Nomes · IAPol®</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <style>
+    :root{
+      --bg:#0a0f1a;
+      --card:#0f1422;
+      --line:#1e4d92;
+      --brand:#1677ff;
+      --brand-2:#0b5ed7;
+      --text:#eaf2ff;
+      --muted:#a9c0e6;
+      --chip:#152241;
+    }
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);margin:0}
+    .wrap{max-width:1080px;margin:0 auto;padding:24px}
+    header{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+    header .brand{display:flex;align-items:center;gap:12px}
+    header img{width:54px;height:54px;object-fit:contain;border-radius:50%}
+    header h1{font-size:28px;margin:0;color:#d8e8ff}
+    header .badge{font-weight:700;color:#dbeaff;background:#0f203f;border:1px solid var(--line);padding:2px 8px;border-radius:999px;font-size:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.28);padding:20px}
+    .sub{color:var(--muted);margin:8px 0 16px}
+    form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+    input[type=text]{flex:1;min-width:280px;padding:12px 14px;border-radius:12px;border:1px solid #1b3b6f;background:#0f1422;color:#f0f6ff}
+    button{padding:12px 16px;border-radius:12px;border:0;background:var(--brand);color:#fff;font-weight:700;cursor:pointer}
+    button:hover{background:var(--brand-2)}
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+    .chip{background:var(--chip);border:1px solid var(--line);padding:6px 10px;border-radius:999px;font-size:12px;color:#cfe3ff;cursor:pointer}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+    .group{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0f1422}
+    .group h2{font-size:15px;margin:0 0 8px;color:#a9d1ff}
+    ul{list-style:none;margin:0;padding:0}
+    li{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+    li:last-child{border-bottom:0}
+    a{color:#9dc9ff;text-decoration:none}
+    a:hover{text-decoration:underline}
+    .footer{margin-top:12px;text-align:center;color:var(--muted);font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <img src="./iapol-logo.png" alt="IAPol®" onerror="this.style.display='none'">
+        <div>
+          <h1>Análise de Nomes</h1>
+          <div class="badge">IAPol®</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="card">
+      <p class="sub">Análise e processamento de nomes de pessoas para fins de verificação de origem e constatação.</p>
+
+      <form onsubmit="return gerar()">
+        <input type="text" id="nome" placeholder="Digite o nome completo (ex.: MARCOS VINICIUS MARINHO MONTEIRO)" />
+        <button type="submit">Analisar</button>
+      </form>
+
+      <div class="chips" id="exemplos"></div>
+      <div class="grid" id="results"></div>
+    </div>
+
+    <div class="footer">IAPol® · uso responsável (LGPD/leis vigentes)</div>
+  </div>
+
+<script>
+const tribunais = [
+  ["JusBrasil","https://www.jusbrasil.com.br/busca?q=%Q%"],
+  ["TJ-SP (Google)","https://www.google.com/search?q=site:tjsp.jus.br+%22%Q%%22"],
+  ["TJ-PI (Google)","https://www.google.com/search?q=site:tjpi.jus.br+%22%Q%%22"],
+  ["TJ-RJ (Google)","https://www.google.com/search?q=site:tjrj.jus.br+%22%Q%%22"],
+  ["MPF (Google)","https://www.google.com/search?q=site:mpf.mp.br+%22%Q%%22"],
+  ["CNJ (Google)","https://www.google.com/search?q=site:cnj.jus.br+%22%Q%%22"]
+];
+const grupos = [
+  ["Motores", [
+    ["Google","https://www.google.com/search?q=%Q%"],
+    ["Bing","https://www.bing.com/search?q=%Q%"],
+    ["DuckDuckGo","https://duckduckgo.com/?q=%Q%"]
+  ]],
+  ["Redes sociais", [
+    ["Facebook","https://www.facebook.com/search/top?q=%Q%"],
+    ["Instagram","https://www.instagram.com/explore/search/keyword/?q=%Q%"],
+    ["X (Twitter)","https://x.com/search?q=%Q%&src=typed_query"],
+    ["LinkedIn (pessoas)","https://www.linkedin.com/search/results/people/?keywords=%Q%"],
+    ["YouTube","https://www.youtube.com/results?search_query=%Q%"]
+  ]],
+  ["Gov/Oficiais", [
+    ["Gov.br","https://www.google.com/search?q=site:gov.br+%22%Q%%22"],
+    ["Transparência (geral)","https://www.google.com/search?q=site:transparencia.*+%22%Q%%22"],
+    ["Diário Oficial (IN)","https://www.google.com/search?q=site:in.gov.br+%22%Q%%22"],
+    ...tribunais
+  ]],
+  ["Documentos", [
+    ["PDF","https://www.google.com/search?q=filetype:pdf+%22%Q%%22"],
+    ["DOCX","https://www.google.com/search?q=filetype:docx+%22%Q%%22"],
+    ["XLSX","https://www.google.com/search?q=filetype:xlsx+%22%Q%%22"],
+    ["PPT","https://www.google.com/search?q=filetype:ppt+%22%Q%%22"]
+  ]],
+  ["Imagens & mídia", [
+    ["Google Imagens","https://www.google.com/search?tbm=isch&q=%Q%"],
+    ["Bing Imagens","https://www.bing.com/images/search?q=%Q%"]
+  ]]
+];
+const exemplos = [
+  "MARCOS VINICIUS MARINHO MONTEIRO",
+  "JOÃO CARLOS DA SILVA",
+  "MARIA APARECIDA SOUZA",
+  "CARLA FERNANDA OLIVEIRA"
+];
+function tpl(nome){ return (s)=> s.replaceAll("%Q%", encodeURIComponent(nome)); }
+function montar(nome){
+  const wrap = document.getElementById("results");
+  wrap.innerHTML = "";
+  history.replaceState({}, "", location.pathname + "?q=" + encodeURIComponent(nome));
+  grupos.forEach(([titulo, itens])=>{
+    const box = document.createElement("div");
+    box.className = "group";
+    const h2 = document.createElement("h2");
+    h2.textContent = titulo;
+    const ul = document.createElement("ul");
+    itens.forEach(([label, linkTpl])=>{
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      a.textContent = label; a.target = "_blank"; a.rel = "noopener";
+      a.href = tpl(nome)(linkTpl);
+      li.appendChild(a); ul.appendChild(li);
+    });
+    box.appendChild(h2); box.appendChild(ul); wrap.appendChild(box);
+  });
+}
+function gerar(){
+  const nome = document.getElementById("nome").value.trim();
+  if(!nome){ alert("Digite um nome completo."); return false; }
+  montar(nome);
+  return false;
+}
+(function init(){
+  const ex = document.getElementById("exemplos");
+  exemplos.forEach(n=>{
+    const span = document.createElement("span");
+    span.className = "chip"; span.textContent = n;
+    span.onclick = ()=>{ document.getElementById("nome").value = n; montar(n); };
+    ex.appendChild(span);
+  });
+  const p = new URLSearchParams(location.search);
+  const q = p.get("q");
+  if(q){
+    const nome = decodeURIComponent(q);
+    document.getElementById("nome").value = nome;
+    montar(nome);
+  }
+})();
+</script>
+</body>
+</html>
