@@ -10,8 +10,7 @@
     :root{
       --bg:#0a0f1a; --card:#0f1422; --line:#1e4d92;
       --brand:#1677ff; --brand-2:#0b5ed7;
-      --text:#eaf2ff; --muted:#a9c0e6;
-      --soft:#0f203f;
+      --text:#eaf2ff; --muted:#a9c0e6; --soft:#0f203f;
     }
     *{box-sizing:border-box}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);margin:0}
@@ -31,14 +30,8 @@
     button:hover{background:var(--brand-2)}
     .actions{display:flex;gap:8px;margin:8px 0 4px;flex-wrap:wrap}
 
-    /* layout resultados + visor */
-    .layout{
-      display:grid;
-      grid-template-columns: 420px 1fr;
-      gap:14px;
-      margin-top:12px;
-    }
-    @media (max-width: 980px){ .layout{grid-template-columns:1fr} }
+    .layout{display:grid;grid-template-columns:420px 1fr;gap:14px;margin-top:12px}
+    @media (max-width:980px){ .layout{grid-template-columns:1fr} }
 
     .groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
     .group{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0f1422}
@@ -49,14 +42,8 @@
     .group a{color:#9dc9ff;text-decoration:none}
     .group a:hover{text-decoration:underline}
 
-    .preview{
-      border:1px dashed var(--line);
-      border-radius:12px;
-      padding:10px;
-      background:#0f1422;
-      max-height:320px; overflow:auto;
-    }
-    .pv-item{padding:8px;border-bottom:1px solid rgba(255,255,255,.06); cursor:pointer}
+    .preview{border:1px dashed var(--line);border-radius:12px;padding:10px;background:#0f1422;max-height:320px;overflow:auto;margin-top:10px}
+    .pv-item{padding:8px;border-bottom:1px solid rgba(255,255,255,.06)}
     .pv-item:last-child{border-bottom:0}
     .pv-title{color:#cfe3ff;font-weight:700;margin-bottom:4px}
     .pv-url{color:#9db9e2;font-size:12px;margin-bottom:4px;word-break:break-all}
@@ -72,7 +59,7 @@
     .footer{margin-top:12px;text-align:center;color:var(--muted);font-size:12px}
   </style>
 
-  <!-- jsPDF (para exportar PDF) -->
+  <!-- jsPDF (PDF) -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
@@ -100,13 +87,10 @@
         <button type="button" onclick="exportPDF()">Exportar PDF</button>
       </div>
 
-      <!-- GRADE DE DIRETÓRIOS + PREVIEW + VISOR -->
       <div class="layout">
         <div>
           <div class="groups" id="groups"></div>
-          <div class="preview" id="preview" style="display:none;margin-top:10px">
-            <div class="pv-item"><div class="pv-title">Pré-visualização</div><div class="pv-snippet">Selecione um diretório (ex.: Google, Bing, JusBrasil) para ver os primeiros trechos aqui. Clique em um item para abrir no painel ao lado.</div></div>
-          </div>
+          <div class="preview" id="preview" style="display:none"></div>
         </div>
 
         <div class="viewer">
@@ -126,7 +110,7 @@
   </div>
 
 <script>
-/* ---------- Diretórios/Dorks ---------- */
+/* ------------------- DORKS/DIRETÓRIOS ------------------- */
 const tribunais = [
   ["JusBrasil","https://www.jusbrasil.com.br/busca?q=%Q%"],
   ["TJ-SP (Google)","https://www.google.com/search?q=site:tjsp.jus.br+%22%Q%%22"],
@@ -167,67 +151,86 @@ const GRUPOS = [
   ]]
 ];
 
-/* ---------- Helpers ---------- */
-const reader = url => `https://r.jina.ai/http://${url.replace(/^https?:\/\//,'')}`;
-function encodeNome(nome){ return encodeURIComponent(nome); }
-function buildUrl(tpl,nome){ return tpl.replaceAll("%Q%", encodeNome(nome)); }
+/* ------------------- HELPERS ------------------- */
+const reader = url => `https://r.jina.ai/http/${url.replace(/^https?:\/\//,'')}`;
+function buildUrl(tpl,nome){ return tpl.replaceAll("%Q%", encodeURIComponent(nome)); }
 
 function setViewer(url,{forceReader=false}={}){
   const frame = document.getElementById("visor");
-  const vurl = document.getElementById("viewerUrl");
+  const vurl  = document.getElementById("viewerUrl");
   const u = forceReader ? reader(url) : url;
   frame.src = u;
   vurl.textContent = u;
   window.__viewer_current = url;
-  window.__viewer_reader = forceReader;
+  window.__viewer_reader  = forceReader;
 }
-
 function toggleReader(){
   if(!window.__viewer_current) return;
-  const next = !window.__viewer_reader;
-  setViewer(window.__viewer_current,{forceReader:next});
+  setViewer(window.__viewer_current,{forceReader:!window.__viewer_reader});
+}
+function openInNewTab(){
+  if(!window.__viewer_current) return;
+  const url = window.__viewer_reader ? reader(window.__viewer_current) : window.__viewer_current;
+  window.open(url, "_blank");
 }
 
-/* Prévia usando modo leitura (texto) */
-async function showPreview(title,url){
+/* ------------------- PREVIEW + CLIQUE ------------------- */
+/* Mostra resultado NO PAINEL imediatamente (modo leitura) e tenta carregar prévia textual */
+async function openDirectory(title, url){
+  // 1) já carrega no visor em modo leitura (garante visualização)
+  setViewer(url,{forceReader:true});
+
+  // 2) tenta preencher a prévia textual
   const pv = document.getElementById("preview");
   pv.style.display = "block";
   pv.innerHTML = `<div class="pv-item"><div class="pv-title">Carregando prévia de ${title}…</div></div>`;
   try{
     const resp = await fetch(reader(url), {mode:"cors"});
+    if(!resp.ok) throw new Error(resp.statusText);
     const txt = await resp.text();
-    const lines = txt.split("\n").filter(Boolean).slice(0,40); // primeiras linhas
-    // Monta itens clicáveis (quebra por títulos simples)
-    const items = [];
-    let acc = [];
-    lines.forEach(l=>{
-      if(/^#|^##|^\s*•|\d\.\s/.test(l) && acc.length){ items.push(acc.join(" ")); acc = [l]; }
+    const lines = txt.split("\n").filter(Boolean);
+    const blocks = [];
+    let acc=[];
+    for(const l of lines){
+      if((/^#|^##|\d+\.\s|•\s/).test(l) && acc.length){ blocks.push(acc.join(" ")); acc=[l]; }
       else acc.push(l);
-    });
-    if(acc.length) items.push(acc.join(" "));
-    const top = items.slice(0,8);
-    pv.innerHTML = top.map((block,i)=>{
-      const snip = block.replace(/\s+/g," ").trim().slice(0,260);
-      return `<div class="pv-item" data-url="${url}">
+      if(blocks.length>=10) break;
+    }
+    if(acc.length && blocks.length<10) blocks.push(acc.join(" "));
+
+    pv.innerHTML = blocks.slice(0,8).map((b,i)=>`
+      <div class="pv-item">
         <div class="pv-title">${title} — item ${i+1}</div>
         <div class="pv-url">${url}</div>
-        <div class="pv-snippet">${snip}…</div>
+        <div class="pv-snippet">${b.replace(/\s+/g," ").slice(0,300)}…</div>
         <div style="margin-top:6px">
-          <button type="button" onclick="setViewer('${url.replace(/'/g,"\\'")}',{forceReader:false})">Abrir no painel</button>
+          <button type="button" onclick="setViewer('${url.replace(/'/g,"\\'")}',{forceReader:false})">Abrir página original</button>
           <button type="button" onclick="setViewer('${url.replace(/'/g,"\\'")}',{forceReader:true})">Abrir em leitura</button>
         </div>
+      </div>
+    `).join("") || `
+      <div class="pv-item">
+        <div class="pv-title">${title}</div>
+        <div class="pv-url">${url}</div>
+        <div class="pv-snippet">Prévia não disponível. Use “Abrir página original”.</div>
+        <div style="margin-top:6px">
+          <button type="button" onclick="setViewer('${url.replace(/'/g,"\\'")}',{forceReader:false})">Abrir página original</button>
+        </div>
       </div>`;
-    }).join("") || `<div class="pv-item"><div class="pv-title">${title}</div><div class="pv-snippet">Sem prévia disponível. Clique em “Abrir no painel”.</div>
-      <div style="margin-top:6px"><button type="button" onclick="setViewer('${url.replace(/'/g,"\\'")}',{forceReader:false})">Abrir no painel</button>
-      <button type="button" onclick="setViewer('${url.replace(/'/g,"\\'")}',{forceReader:true})">Abrir em leitura</button></div></div>`;
   }catch(e){
-    pv.innerHTML = `<div class="pv-item"><div class="pv-title">${title}</div><div class="pv-snippet">Não foi possível obter a prévia agora.</div>
-      <div style="margin-top:6px"><button type="button" onclick="setViewer('${url.replace(/'/g,"\\'")}',{forceReader:false})">Abrir no painel</button>
-      <button type="button" onclick="setViewer('${url.replace(/'/g,"\\'")}',{forceReader:true})">Abrir em leitura</button></div></div>`;
+    pv.innerHTML = `
+      <div class="pv-item">
+        <div class="pv-title">${title}</div>
+        <div class="pv-url">${url}</div>
+        <div class="pv-snippet">Não foi possível carregar a prévia. O visor já está em modo leitura.</div>
+        <div style="margin-top:6px">
+          <button type="button" onclick="setViewer('${url.replace(/'/g,"\\'")}',{forceReader:false})">Abrir página original</button>
+        </div>
+      </div>`;
   }
 }
 
-/* Montagem dos diretórios */
+/* Monta a grade de diretórios */
 function montarGrupos(nome){
   const box = document.getElementById("groups");
   box.innerHTML = "";
@@ -236,20 +239,22 @@ function montarGrupos(nome){
     div.className = "group";
     const h2 = document.createElement("h2"); h2.textContent = titulo;
     const ul = document.createElement("ul");
+
     itens.forEach(([label,tpl])=>{
       const li = document.createElement("li");
-      const a = document.createElement("a");
+      const a  = document.createElement("a");
       const finalUrl = buildUrl(tpl,nome);
       a.textContent = label;
-      a.href = "javascript:void(0)";
-      a.onclick = ()=> showPreview(label, finalUrl);
+      a.href = "#";
+      a.onclick = (ev)=>{ ev.preventDefault(); openDirectory(label, finalUrl); };
       li.appendChild(a); ul.appendChild(li);
     });
+
     div.appendChild(h2); div.appendChild(ul); box.appendChild(div);
   });
 }
 
-/* ---------- Exportações ---------- */
+/* ------------------- EXPORTAÇÕES ------------------- */
 function fillTpl(nome){ return s => s.replaceAll("%Q%", encodeURIComponent(nome)); }
 function buildData(nome){
   const make = fillTpl(nome);
@@ -304,7 +309,7 @@ function exportPDF(){
   doc.save(`IAPol_Analise_de_Nomes_${nome.replace(/\s+/g,'_')}.pdf`);
 }
 
-/* ---------- Fluxo ---------- */
+/* ------------------- FLUXO ------------------- */
 function gerar(){
   const nome = document.getElementById("nome").value.trim();
   if(!nome){ alert("Digite um nome completo."); return false; }
@@ -312,15 +317,9 @@ function gerar(){
   history.replaceState({}, "", location.pathname + "?q=" + encodeURIComponent(nome));
   document.getElementById("exportBar").style.display = "flex";
   montarGrupos(nome);
-  // limpa preview/visor
   document.getElementById("preview").style.display="none";
   setViewer("about:blank");
   return false;
-}
-
-function openInNewTab(){
-  if(!window.__viewer_current) return;
-  window.open(window.__viewer_reader ? reader(window.__viewer_current) : window.__viewer_current, "_blank");
 }
 
 /* URL compartilhável */
