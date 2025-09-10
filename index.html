@@ -15,11 +15,25 @@
     *{box-sizing:border-box}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);margin:0}
     .wrap{max-width:1080px;margin:0 auto;padding:24px}
+
+    /* Cabeçalho */
     header{display:flex;align-items:center;gap:14px;margin-bottom:16px}
-    header .brand{display:flex;align-items:center;gap:12px}
-    header img{width:54px;height:54px;object-fit:contain;border-radius:50%}
-    header h1{font-size:28px;margin:0;color:#d8e8ff}
-    header .badge{font-weight:700;color:#dbeaff;background:#0f203f;border:1px solid var(--line);padding:2px 8px;border-radius:999px;font-size:12px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand img{width:54px;height:54px;object-fit:contain;border-radius:50%}
+    .brand h1{font-size:28px;margin:0;color:#d8e8ff;line-height:1.1}
+    .brand .badge{
+      margin-top:6px;
+      display:inline-flex; align-items:center; gap:8px;
+      flex-wrap:wrap;
+      padding:4px 10px; border-radius:999px;
+      background:#0f203f; border:1px solid var(--line);
+      color:#dbeaff; font-weight:700; font-size:12px;
+      letter-spacing:.3px;
+    }
+    .badge .sep{opacity:.5; margin:0 2px}
+    .badge .legend{font-weight:600; color:#b9cff5; white-space:nowrap}
+
+    /* Cartão / formulário */
     .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.28);padding:20px}
     .sub{color:var(--muted);margin:8px 0 16px}
     form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
@@ -27,6 +41,8 @@
     button{padding:12px 16px;border-radius:12px;border:0;background:var(--brand);color:#fff;font-weight:700;cursor:pointer}
     button:hover{background:var(--brand-2)}
     .actions{display:flex;gap:8px;margin:8px 0 4px;flex-wrap:wrap}
+
+    /* Resultados */
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:8px}
     .group{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0f1422}
     .group h2{font-size:15px;margin:0 0 8px;color:#a9d1ff}
@@ -35,7 +51,14 @@
     li:last-child{border-bottom:0}
     a{color:#9dc9ff;text-decoration:none}
     a:hover{text-decoration:underline}
+
     .footer{margin-top:12px;text-align:center;color:var(--muted);font-size:12px}
+
+    /* Responsivo: em telas muito estreitas, quebrar a legenda para baixo */
+    @media (max-width:520px){
+      .brand{align-items:flex-start}
+      .brand .badge{display:inline-block}
+    }
   </style>
   <!-- jsPDF (para exportar PDF) -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -47,7 +70,12 @@
         <img src="./iapol-logo.png" alt="IAPol®" onerror="this.style.display='none'">
         <div>
           <h1>Análise de Nomes</h1>
-          <div class="badge">IAPol®</div>
+          <!-- Badge com nome + traço + frase solicitada -->
+          <div class="badge">
+            <span>IAPol®</span>
+            <span class="sep">—</span>
+            <span class="legend">INTELIGÊNCIA ARTIFICIAL POLICIAL</span>
+          </div>
         </div>
       </div>
     </header>
@@ -140,8 +168,7 @@ function montar(nome){
     box.appendChild(h2); box.appendChild(ul); results.appendChild(box);
   });
 
-  // Exibe botões de exportação
-  bar.style.display = "flex";
+  bar.style.display = "flex"; // mostra exportações
 }
 
 function gerar(){
@@ -157,8 +184,8 @@ function buildData(nome){
   const make = fillTpl(nome);
   const data = [];
   grupos.forEach(([grupo, itens])=>{
-    itens.forEach(([label, linkTpl])=>{
-      data.push({grupo, fonte: label, url: make(linkTpl)});
+    itens.forEach(([fonte, tpl])=>{
+      data.push({grupo, fonte, url: make(tpl)});
     });
   });
   return data;
@@ -170,7 +197,6 @@ function exportCSV(){
   const rows = buildData(nome);
   let csv = "NOME;GRUPO;FONTE;URL\n";
   rows.forEach(r=>{
-    // Escapa ; e " conforme necessário
     const line = [
       `"${nome.replace(/"/g,'""')}"`,
       `"${r.grupo.replace(/"/g,'""')}"`,
@@ -186,47 +212,33 @@ function exportCSV(){
   document.body.appendChild(a); a.click(); a.remove();
 }
 
-async function exportPDF(){
+function exportPDF(){
   const nome = window.__iapol_nome || document.getElementById("nome").value.trim();
   if(!nome){ alert("Gere os resultados antes de exportar."); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
-  const margin = 48;
-  let y = margin;
+  const margin = 48; let y = margin;
 
-  // Cabeçalho
   doc.setFont("helvetica","bold"); doc.setFontSize(16);
-  doc.text("IAPol® — Análise de Nomes", margin, y);
-  y += 18;
+  doc.text("IAPol® — Análise de Nomes", margin, y); y += 18;
   doc.setFont("helvetica","normal"); doc.setFontSize(12);
-  doc.text(`Nome analisado: ${nome}`, margin, y);
-  y += 8;
-  const dataStr = new Date().toLocaleString("pt-BR");
-  doc.text(`Data: ${dataStr}`, margin, y);
-  y += 18;
+  doc.text(`Nome analisado: ${nome}`, margin, y); y += 8;
+  doc.text(`Data: ${new Date().toLocaleString("pt-BR")}`, margin, y); y += 18;
 
-  // Conteúdo
   const make = fillTpl(nome);
   doc.setFontSize(11);
-  grupos.forEach(([grupo, itens], gi)=>{
+  grupos.forEach(([grupo, itens])=>{
     if (y > 780) { doc.addPage(); y = margin; }
-    doc.setFont("helvetica","bold");
-    doc.text(grupo, margin, y); y += 12;
+    doc.setFont("helvetica","bold"); doc.text(grupo, margin, y); y += 12;
     doc.setFont("helvetica","normal");
-    itens.forEach(([label, linkTpl])=>{
-      const url = make(linkTpl);
-      const line = `• ${label}: ${url}`;
-      // quebra simples se passar largura
+    itens.forEach(([fonte, tpl])=>{
+      const line = `• ${fonte}: ${make(tpl)}`;
       const lines = doc.splitTextToSize(line, 515);
-      lines.forEach((ln)=>{ 
-        if (y > 800) { doc.addPage(); y = margin; }
-        doc.text(ln, margin, y); y += 14;
-      });
+      lines.forEach(ln => { if (y > 800) { doc.addPage(); y = margin; } doc.text(ln, margin, y); y += 14; });
     });
     y += 6;
   });
 
-  // Rodapé
   if (y > 800) { doc.addPage(); y = margin; }
   doc.setDrawColor(160); doc.line(margin, 820, 595-margin, 820);
   doc.setFontSize(9); doc.setTextColor(120);
