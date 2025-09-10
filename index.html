@@ -11,30 +11,18 @@
       --bg:#0a0f1a; --card:#0f1422; --line:#1e4d92;
       --brand:#1677ff; --brand-2:#0b5ed7;
       --text:#eaf2ff; --muted:#a9c0e6;
+      --soft:#0f203f;
     }
     *{box-sizing:border-box}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);margin:0}
-    .wrap{max-width:1080px;margin:0 auto;padding:24px}
+    .wrap{max-width:1180px;margin:0 auto;padding:24px}
 
-    /* Cabeçalho */
     header{display:flex;align-items:center;gap:14px;margin-bottom:16px}
     .brand{display:flex;align-items:center;gap:12px}
     .brand img{width:54px;height:54px;object-fit:contain;border-radius:50%}
     .brand h1{font-size:28px;margin:0;color:#d8e8ff;line-height:1.1}
-    .brand .badge{
-      margin-top:6px;
-      display:inline-block;
-      padding:4px 12px;
-      border-radius:999px;
-      background:#0f203f;
-      border:1px solid var(--line);
-      color:#dbeaff;
-      font-weight:600;
-      font-size:12px;
-      letter-spacing:.3px;
-    }
+    .brand .badge{margin-top:6px;display:inline-block;padding:4px 12px;border-radius:999px;background:#0f203f;border:1px solid var(--line);color:#dbeaff;font-weight:600;font-size:12px;letter-spacing:.3px}
 
-    /* Cartão / formulário */
     .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.28);padding:20px}
     .sub{color:var(--muted);margin:8px 0 16px}
     form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
@@ -43,18 +31,47 @@
     button:hover{background:var(--brand-2)}
     .actions{display:flex;gap:8px;margin:8px 0 4px;flex-wrap:wrap}
 
-    /* Resultados */
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:8px}
+    /* layout resultados + visor */
+    .layout{
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap:14px;
+      margin-top:12px;
+    }
+    @media (max-width: 980px){ .layout{grid-template-columns:1fr} }
+
+    .groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
     .group{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0f1422}
     .group h2{font-size:15px;margin:0 0 8px;color:#a9d1ff}
-    ul{list-style:none;margin:0;padding:0}
-    li{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
-    li:last-child{border-bottom:0}
-    a{color:#9dc9ff;text-decoration:none}
-    a:hover{text-decoration:underline}
+    .group ul{list-style:none;margin:0;padding:0}
+    .group li{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+    .group li:last-child{border-bottom:0}
+    .group a{color:#9dc9ff;text-decoration:none}
+    .group a:hover{text-decoration:underline}
+
+    .preview{
+      border:1px dashed var(--line);
+      border-radius:12px;
+      padding:10px;
+      background:#0f1422;
+      max-height:320px; overflow:auto;
+    }
+    .pv-item{padding:8px;border-bottom:1px solid rgba(255,255,255,.06); cursor:pointer}
+    .pv-item:last-child{border-bottom:0}
+    .pv-title{color:#cfe3ff;font-weight:700;margin-bottom:4px}
+    .pv-url{color:#9db9e2;font-size:12px;margin-bottom:4px;word-break:break-all}
+    .pv-snippet{color:#c7d6ef;font-size:13px}
+
+    .viewer{border:1px solid var(--line);border-radius:12px;background:#0f1422}
+    .viewer-head{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--soft)}
+    .viewer-url{color:#9db9e2;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80%}
+    .viewer-ctrls{display:flex;gap:8px}
+    .viewer-ctrls button{padding:8px 10px;font-size:12px}
+    iframe#visor{width:100%;height:72vh;border:0;border-bottom-left-radius:12px;border-bottom-right-radius:12px;background:#0b0f1a}
 
     .footer{margin-top:12px;text-align:center;color:var(--muted);font-size:12px}
   </style>
+
   <!-- jsPDF (para exportar PDF) -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
@@ -65,7 +82,6 @@
         <img src="./iapol-logo.png" alt="IAPol®" onerror="this.style.display='none'">
         <div>
           <h1>Análise de Nomes</h1>
-          <!-- Badge com a frase solicitada -->
           <div class="badge">IAPol® | Inteligência Artificial Policial</div>
         </div>
       </div>
@@ -79,20 +95,38 @@
         <button type="submit">Analisar</button>
       </form>
 
-      <!-- Botões de exportação -->
       <div class="actions" id="exportBar" style="display:none">
         <button type="button" onclick="exportCSV()">Exportar CSV</button>
         <button type="button" onclick="exportPDF()">Exportar PDF</button>
       </div>
 
-      <div class="grid" id="results"></div>
+      <!-- GRADE DE DIRETÓRIOS + PREVIEW + VISOR -->
+      <div class="layout">
+        <div>
+          <div class="groups" id="groups"></div>
+          <div class="preview" id="preview" style="display:none;margin-top:10px">
+            <div class="pv-item"><div class="pv-title">Pré-visualização</div><div class="pv-snippet">Selecione um diretório (ex.: Google, Bing, JusBrasil) para ver os primeiros trechos aqui. Clique em um item para abrir no painel ao lado.</div></div>
+          </div>
+        </div>
+
+        <div class="viewer">
+          <div class="viewer-head">
+            <div class="viewer-url" id="viewerUrl">Nenhum conteúdo carregado</div>
+            <div class="viewer-ctrls">
+              <button type="button" onclick="openInNewTab()">Abrir em nova aba</button>
+              <button type="button" onclick="toggleReader()">Alternar leitura</button>
+            </div>
+          </div>
+          <iframe id="visor" sandbox="allow-scripts allow-forms allow-same-origin allow-popups" referrerpolicy="no-referrer"></iframe>
+        </div>
+      </div>
     </div>
 
     <div class="footer">IAPol® · uso responsável (LGPD/leis vigentes)</div>
   </div>
 
 <script>
-/* ---------- Dorks/links ---------- */
+/* ---------- Diretórios/Dorks ---------- */
 const tribunais = [
   ["JusBrasil","https://www.jusbrasil.com.br/busca?q=%Q%"],
   ["TJ-SP (Google)","https://www.google.com/search?q=site:tjsp.jus.br+%22%Q%%22"],
@@ -102,7 +136,7 @@ const tribunais = [
   ["CNJ (Google)","https://www.google.com/search?q=site:cnj.jus.br+%22%Q%%22"]
 ];
 
-const grupos = [
+const GRUPOS = [
   ["Motores", [
     ["Google","https://www.google.com/search?q=%Q%"],
     ["Bing","https://www.bing.com/search?q=%Q%"],
@@ -134,111 +168,162 @@ const grupos = [
 ];
 
 /* ---------- Helpers ---------- */
-function fillTpl(nome){ return s => s.replaceAll("%Q%", encodeURIComponent(nome)); }
+const reader = url => `https://r.jina.ai/http://${url.replace(/^https?:\/\//,'')}`;
+function encodeNome(nome){ return encodeURIComponent(nome); }
+function buildUrl(tpl,nome){ return tpl.replaceAll("%Q%", encodeNome(nome)); }
 
-function montar(nome){
-  const results = document.getElementById("results");
-  const bar = document.getElementById("exportBar");
-  results.innerHTML = "";
-  history.replaceState({}, "", location.pathname + "?q=" + encodeURIComponent(nome));
-
-  grupos.forEach(([titulo, itens])=>{
-    const box = document.createElement("div");
-    box.className = "group";
-    const h2 = document.createElement("h2"); h2.textContent = titulo;
-    const ul = document.createElement("ul");
-
-    itens.forEach(([label, linkTpl])=>{
-      const li = document.createElement("li");
-      const a = document.createElement("a");
-      a.textContent = label; a.target = "_blank"; a.rel = "noopener";
-      a.href = fillTpl(nome)(linkTpl);
-      li.appendChild(a); ul.appendChild(li);
-    });
-
-    box.appendChild(h2); box.appendChild(ul); results.appendChild(box);
-  });
-
-  bar.style.display = "flex";
+function setViewer(url,{forceReader=false}={}){
+  const frame = document.getElementById("visor");
+  const vurl = document.getElementById("viewerUrl");
+  const u = forceReader ? reader(url) : url;
+  frame.src = u;
+  vurl.textContent = u;
+  window.__viewer_current = url;
+  window.__viewer_reader = forceReader;
 }
 
-function gerar(){
-  const nome = document.getElementById("nome").value.trim();
-  if(!nome){ alert("Digite um nome completo."); return false; }
-  window.__iapol_nome = nome;
-  montar(nome);
-  return false;
+function toggleReader(){
+  if(!window.__viewer_current) return;
+  const next = !window.__viewer_reader;
+  setViewer(window.__viewer_current,{forceReader:next});
+}
+
+/* Prévia usando modo leitura (texto) */
+async function showPreview(title,url){
+  const pv = document.getElementById("preview");
+  pv.style.display = "block";
+  pv.innerHTML = `<div class="pv-item"><div class="pv-title">Carregando prévia de ${title}…</div></div>`;
+  try{
+    const resp = await fetch(reader(url), {mode:"cors"});
+    const txt = await resp.text();
+    const lines = txt.split("\n").filter(Boolean).slice(0,40); // primeiras linhas
+    // Monta itens clicáveis (quebra por títulos simples)
+    const items = [];
+    let acc = [];
+    lines.forEach(l=>{
+      if(/^#|^##|^\s*•|\d\.\s/.test(l) && acc.length){ items.push(acc.join(" ")); acc = [l]; }
+      else acc.push(l);
+    });
+    if(acc.length) items.push(acc.join(" "));
+    const top = items.slice(0,8);
+    pv.innerHTML = top.map((block,i)=>{
+      const snip = block.replace(/\s+/g," ").trim().slice(0,260);
+      return `<div class="pv-item" data-url="${url}">
+        <div class="pv-title">${title} — item ${i+1}</div>
+        <div class="pv-url">${url}</div>
+        <div class="pv-snippet">${snip}…</div>
+        <div style="margin-top:6px">
+          <button type="button" onclick="setViewer('${url.replace(/'/g,"\\'")}',{forceReader:false})">Abrir no painel</button>
+          <button type="button" onclick="setViewer('${url.replace(/'/g,"\\'")}',{forceReader:true})">Abrir em leitura</button>
+        </div>
+      </div>`;
+    }).join("") || `<div class="pv-item"><div class="pv-title">${title}</div><div class="pv-snippet">Sem prévia disponível. Clique em “Abrir no painel”.</div>
+      <div style="margin-top:6px"><button type="button" onclick="setViewer('${url.replace(/'/g,"\\'")}',{forceReader:false})">Abrir no painel</button>
+      <button type="button" onclick="setViewer('${url.replace(/'/g,"\\'")}',{forceReader:true})">Abrir em leitura</button></div></div>`;
+  }catch(e){
+    pv.innerHTML = `<div class="pv-item"><div class="pv-title">${title}</div><div class="pv-snippet">Não foi possível obter a prévia agora.</div>
+      <div style="margin-top:6px"><button type="button" onclick="setViewer('${url.replace(/'/g,"\\'")}',{forceReader:false})">Abrir no painel</button>
+      <button type="button" onclick="setViewer('${url.replace(/'/g,"\\'")}',{forceReader:true})">Abrir em leitura</button></div></div>`;
+  }
+}
+
+/* Montagem dos diretórios */
+function montarGrupos(nome){
+  const box = document.getElementById("groups");
+  box.innerHTML = "";
+  GRUPOS.forEach(([titulo,itens])=>{
+    const div = document.createElement("div");
+    div.className = "group";
+    const h2 = document.createElement("h2"); h2.textContent = titulo;
+    const ul = document.createElement("ul");
+    itens.forEach(([label,tpl])=>{
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      const finalUrl = buildUrl(tpl,nome);
+      a.textContent = label;
+      a.href = "javascript:void(0)";
+      a.onclick = ()=> showPreview(label, finalUrl);
+      li.appendChild(a); ul.appendChild(li);
+    });
+    div.appendChild(h2); div.appendChild(ul); box.appendChild(div);
+  });
 }
 
 /* ---------- Exportações ---------- */
+function fillTpl(nome){ return s => s.replaceAll("%Q%", encodeURIComponent(nome)); }
 function buildData(nome){
   const make = fillTpl(nome);
   const data = [];
-  grupos.forEach(([grupo, itens])=>{
+  GRUPOS.forEach(([grupo, itens])=>{
     itens.forEach(([fonte, tpl])=>{
       data.push({grupo, fonte, url: make(tpl)});
     });
   });
   return data;
 }
-
 function exportCSV(){
   const nome = window.__iapol_nome || document.getElementById("nome").value.trim();
   if(!nome){ alert("Gere os resultados antes de exportar."); return; }
   const rows = buildData(nome);
   let csv = "NOME;GRUPO;FONTE;URL\n";
   rows.forEach(r=>{
-    const line = [
-      `"${nome.replace(/"/g,'""')}"`,
-      `"${r.grupo.replace(/"/g,'""')}"`,
-      `"${r.fonte.replace(/"/g,'""')}"`,
-      `"${r.url.replace(/"/g,'""')}"`
-    ].join(";");
+    const line = [`"${nome.replace(/"/g,'""')}"`,`"${r.grupo.replace(/"/g,'""')}"`,`"${r.fonte.replace(/"/g,'""')}"`,`"${r.url.replace(/"/g,'""')}"`].join(";");
     csv += line + "\n";
   });
-  const blob = new Blob([csv], {type: "text/csv;charset=utf-8"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `IAPol_Analise_de_Nomes_${nome.replace(/\s+/g,'_')}.csv`;
-  document.body.appendChild(a); a.click(); a.remove();
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `IAPol_Analise_de_Nomes_${nome.replace(/\s+/g,'_')}.csv`; a.click();
 }
-
 function exportPDF(){
   const nome = window.__iapol_nome || document.getElementById("nome").value.trim();
   if(!nome){ alert("Gere os resultados antes de exportar."); return; }
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
-  const margin = 48; let y = margin;
-
+  const doc = new jsPDF({ unit:"pt", format:"a4" });
+  const m=48; let y=m;
   doc.setFont("helvetica","bold"); doc.setFontSize(16);
-  doc.text("IAPol® — Análise de Nomes", margin, y); y += 18;
+  doc.text("IAPol® — Análise de Nomes", m, y); y+=18;
   doc.setFont("helvetica","normal"); doc.setFontSize(12);
-  doc.text(`Nome analisado: ${nome}`, margin, y); y += 8;
-  doc.text(`Data: ${new Date().toLocaleString("pt-BR")}`, margin, y); y += 18;
-
-  const make = fillTpl(nome);
-  doc.setFontSize(11);
-  grupos.forEach(([grupo, itens])=>{
-    if (y > 780) { doc.addPage(); y = margin; }
-    doc.setFont("helvetica","bold"); doc.text(grupo, margin, y); y += 12;
+  doc.text(`Nome analisado: ${nome}`, m, y); y+=8;
+  doc.text(`Data: ${new Date().toLocaleString("pt-BR")}`, m, y); y+=18;
+  const make = fillTpl(nome); doc.setFontSize(11);
+  GRUPOS.forEach(([grupo,itens])=>{
+    if(y>780){ doc.addPage(); y=m; }
+    doc.setFont("helvetica","bold"); doc.text(grupo, m, y); y+=12;
     doc.setFont("helvetica","normal");
-    itens.forEach(([fonte, tpl])=>{
-      const line = `• ${fonte}: ${make(tpl)}`;
-      const lines = doc.splitTextToSize(line, 515);
-      lines.forEach(ln => { if (y > 800) { doc.addPage(); y = margin; } doc.text(ln, margin, y); y += 14; });
+    itens.forEach(([fonte,tpl])=>{
+      const ln = `• ${fonte}: ${make(tpl)}`;
+      const lines = doc.splitTextToSize(ln, 515);
+      lines.forEach(L=>{ if(y>800){ doc.addPage(); y=m; } doc.text(L, m, y); y+=14; });
     });
-    y += 6;
+    y+=6;
   });
-
-  if (y > 800) { doc.addPage(); y = margin; }
-  doc.setDrawColor(160); doc.line(margin, 820, 595-margin, 820);
+  if(y>800){ doc.addPage(); y=m; }
+  doc.setDrawColor(160); doc.line(m,820,595-m,820);
   doc.setFontSize(9); doc.setTextColor(120);
-  doc.text("IAPol® · uso responsável (LGPD/leis vigentes)", margin, 838);
-
+  doc.text("IAPol® · uso responsável (LGPD/leis vigentes)", m, 838);
   doc.save(`IAPol_Analise_de_Nomes_${nome.replace(/\s+/g,'_')}.pdf`);
 }
 
-/* ---------- Suporte a URL ?q= ---------- */
+/* ---------- Fluxo ---------- */
+function gerar(){
+  const nome = document.getElementById("nome").value.trim();
+  if(!nome){ alert("Digite um nome completo."); return false; }
+  window.__iapol_nome = nome;
+  history.replaceState({}, "", location.pathname + "?q=" + encodeURIComponent(nome));
+  document.getElementById("exportBar").style.display = "flex";
+  montarGrupos(nome);
+  // limpa preview/visor
+  document.getElementById("preview").style.display="none";
+  setViewer("about:blank");
+  return false;
+}
+
+function openInNewTab(){
+  if(!window.__viewer_current) return;
+  window.open(window.__viewer_reader ? reader(window.__viewer_current) : window.__viewer_current, "_blank");
+}
+
+/* URL compartilhável */
 (function init(){
   const p = new URLSearchParams(location.search);
   const q = p.get("q");
@@ -246,7 +331,8 @@ function exportPDF(){
     const nome = decodeURIComponent(q);
     document.getElementById("nome").value = nome;
     window.__iapol_nome = nome;
-    montar(nome);
+    document.getElementById("exportBar").style.display = "flex";
+    montarGrupos(nome);
   }
 })();
 </script>
