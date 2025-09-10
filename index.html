@@ -23,15 +23,16 @@
     .brand h1{font-size:28px;margin:0;color:#d8e8ff;line-height:1.1}
     .brand .badge{
       margin-top:6px;
-      display:inline-flex; align-items:center; gap:8px;
-      flex-wrap:wrap;
-      padding:4px 10px; border-radius:999px;
-      background:#0f203f; border:1px solid var(--line);
-      color:#dbeaff; font-weight:700; font-size:12px;
+      display:inline-block;
+      padding:4px 12px;
+      border-radius:999px;
+      background:#0f203f;
+      border:1px solid var(--line);
+      color:#dbeaff;
+      font-weight:600;
+      font-size:12px;
       letter-spacing:.3px;
     }
-    .badge .sep{opacity:.5; margin:0 2px}
-    .badge .legend{font-weight:600; color:#b9cff5; white-space:nowrap}
 
     /* Cartão / formulário */
     .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.28);padding:20px}
@@ -53,12 +54,6 @@
     a:hover{text-decoration:underline}
 
     .footer{margin-top:12px;text-align:center;color:var(--muted);font-size:12px}
-
-    /* Responsivo: em telas muito estreitas, quebrar a legenda para baixo */
-    @media (max-width:520px){
-      .brand{align-items:flex-start}
-      .brand .badge{display:inline-block}
-    }
   </style>
   <!-- jsPDF (para exportar PDF) -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -70,12 +65,8 @@
         <img src="./iapol-logo.png" alt="IAPol®" onerror="this.style.display='none'">
         <div>
           <h1>Análise de Nomes</h1>
-          <!-- Badge com nome + traço + frase solicitada -->
-          <div class="badge">
-            <span>IAPol®</span>
-            <span class="sep">—</span>
-            <span class="legend">INTELIGÊNCIA ARTIFICIAL POLICIAL</span>
-          </div>
+          <!-- Badge com a frase solicitada -->
+          <div class="badge">IAPol® | Inteligência Artificial Policial</div>
         </div>
       </div>
     </header>
@@ -88,7 +79,7 @@
         <button type="submit">Analisar</button>
       </form>
 
-      <!-- Botões de exportação (aparecem após gerar resultados) -->
+      <!-- Botões de exportação -->
       <div class="actions" id="exportBar" style="display:none">
         <button type="button" onclick="exportCSV()">Exportar CSV</button>
         <button type="button" onclick="exportPDF()">Exportar PDF</button>
@@ -168,13 +159,13 @@ function montar(nome){
     box.appendChild(h2); box.appendChild(ul); results.appendChild(box);
   });
 
-  bar.style.display = "flex"; // mostra exportações
+  bar.style.display = "flex";
 }
 
 function gerar(){
   const nome = document.getElementById("nome").value.trim();
   if(!nome){ alert("Digite um nome completo."); return false; }
-  window.__iapol_nome = nome; // guarda para exportações
+  window.__iapol_nome = nome;
   montar(nome);
   return false;
 }
