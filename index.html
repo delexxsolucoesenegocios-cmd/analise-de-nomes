@@ -1,254 +1,427 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Análise de Nomes · IAPol®</title>
-  <link rel="icon" type="image/png" href="./favicon.png">
-  <meta name="robots" content="noindex,nofollow" />
-  <style>
-    :root{
-      --bg:#0a0f1a; --card:#0f1422; --line:#1e4d92;
-      --brand:#1677ff; --brand-2:#0b5ed7;
-      --text:#eaf2ff; --muted:#a9c0e6;
-    }
-    *{box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);margin:0}
-    .wrap{max-width:1080px;margin:0 auto;padding:24px}
-
-    /* Cabeçalho */
-    header{display:flex;align-items:center;gap:14px;margin-bottom:16px}
-    .brand{display:flex;align-items:center;gap:12px}
-    .brand img{width:54px;height:54px;object-fit:contain;border-radius:50%}
-    .brand h1{font-size:28px;margin:0;color:#d8e8ff;line-height:1.1}
-    .brand .badge{
-      margin-top:6px;
-      display:inline-block;
-      padding:4px 12px;
-      border-radius:999px;
-      background:#0f203f;
-      border:1px solid var(--line);
-      color:#dbeaff;
-      font-weight:600;
-      font-size:12px;
-      letter-spacing:.3px;
-    }
-
-    /* Cartão / formulário */
-    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.28);padding:20px}
-    .sub{color:var(--muted);margin:8px 0 16px}
-    form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-    input[type=text]{flex:1;min-width:280px;padding:12px 14px;border-radius:12px;border:1px solid #1b3b6f;background:#0f1422;color:#f0f6ff}
-    button{padding:12px 16px;border-radius:12px;border:0;background:var(--brand);color:#fff;font-weight:700;cursor:pointer}
-    button:hover{background:var(--brand-2)}
-    .actions{display:flex;gap:8px;margin:8px 0 4px;flex-wrap:wrap}
-
-    /* Resultados */
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:8px}
-    .group{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0f1422}
-    .group h2{font-size:15px;margin:0 0 8px;color:#a9d1ff}
-    ul{list-style:none;margin:0;padding:0}
-    li{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
-    li:last-child{border-bottom:0}
-    a{color:#9dc9ff;text-decoration:none}
-    a:hover{text-decoration:underline}
-
-    .footer{margin-top:12px;text-align:center;color:var(--muted);font-size:12px}
-  </style>
-  <!-- jsPDF (para exportar PDF) -->
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Análise de Telefone | Inteligência Artificial Policial</title>
+<meta name="description" content="Painel OSINT para gerar consultas legais de telefone vinculado a CPF e e-mail. Uso exclusivo com base legal.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='100%25' height='100%25' rx='12' ry='12' fill='%230a2540'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='34' fill='%23ffffff'%3EIA%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0b1020;        /* preto azuladinho */
+    --panel:#11162b;
+    --muted:#9fb3c8;
+    --text:#e9eef5;
+    --blue:#1e90ff;
+    --accent:#3aa0ff;
+    --ok:#19c37d;
+    --warn:#ffbf00;
+    --danger:#ff5d5d;
+    --card:#0f1427;
+    --border:#23304a;
+    --shadow:0 12px 30px rgba(0,0,0,.35);
+    --radius:18px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background: radial-gradient(1200px 800px at 80% -10%, rgba(30,144,255,.12), transparent 60%),
+                radial-gradient(1000px 600px at -10% 20%, rgba(58,160,255,.10), transparent 55%),
+                var(--bg);
+    color:var(--text);
+    font:16px/1.5 "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  }
+  header{
+    padding:28px 18px 10px;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 18px 40px}
+  .brand{
+    display:flex;align-items:center;gap:14px;margin-bottom:10px
+  }
+  .logo{
+    width:54px;height:54px;border-radius:16px;
+    background:linear-gradient(145deg,#0a2540,#0e2b56);
+    display:grid;place-items:center;box-shadow:var(--shadow); border:1px solid var(--border)
+  }
+  .logo span{font-weight:800;letter-spacing:.5px;color:#fff}
+  h1{margin:0;font-size:28px}
+  .subtitle{margin:6px 0 0;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;margin-top:18px}
+  .card{
+    background:var(--card);border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow)
+  }
+  .card h3{margin:0;padding:18px 18px 0;font-size:18px}
+  .card .body{padding:18px}
+  label{display:block;font-weight:600;margin:10px 0 6px}
+  input[type="text"], input[type="email"]{
+    width:100%;padding:14px 12px;border-radius:12px;border:1px solid var(--border);
+    background:#0a1022;color:var(--text);outline:none;transition:.2s;
+  }
+  input:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(30,144,255,.18)}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .btn{
+    padding:12px 14px;border-radius:12px;border:1px solid var(--border);cursor:pointer;
+    background:linear-gradient(180deg,#142042,#0f1733); color:#fff; font-weight:600;
+    transition:.15s; box-shadow:var(--shadow)
+  }
+  .btn:hover{transform:translateY(-1px);border-color:var(--accent)}
+  .btn.primary{background:linear-gradient(180deg,#1f6fe0,#1352c4); border-color:#1e5ed1}
+  .btn.ok{background:linear-gradient(180deg,#22c985,#18a56b); border-color:#18a56b}
+  .btn.warn{background:linear-gradient(180deg,#ffcc33,#f4b000); color:#122; border-color:#e7a900}
+  .btn.ghost{background:transparent}
+  .switch{display:flex;align-items:center;gap:10px;margin-top:6px;color:var(--muted)}
+  .switch input{transform:scale(1.15)}
+  .list{padding:0;margin:0;list-style:none}
+  .item{
+    border-top:1px dashed var(--border); padding:12px 0; display:grid; gap:10px
+  }
+  .tag{display:inline-block;padding:2px 8px;border-radius:999px;background:#0f2140;color:#b7d7ff;
+       border:1px solid #254a7a;font-size:12px;font-weight:700;letter-spacing:.3px}
+  .muted{color:var(--muted)}
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:2px 6px;border:1px solid var(--border);
+       border-radius:6px;background:#0a1022}
+  .footer{color:var(--muted);font-size:13px;padding:18px;text-align:center}
+  .cols-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .danger{color:var(--danger)}
+  .small{font-size:13px}
+  .table{width:100%;border-collapse:collapse}
+  .table th,.table td{border-bottom:1px dashed var(--border);padding:8px 6px;text-align:left}
+  .table th{color:#cfe3ff;font-weight:700}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);
+        border-radius:12px;background:#0a1022}
+  .flex{display:flex;gap:10px;flex-wrap:wrap}
+  details{border-top:1px dashed var(--border);padding-top:10px;margin-top:10px}
+  details summary{cursor:pointer;color:#bfe0ff}
+  .disclaimer{
+    background:#0a1022;border:1px solid var(--border);border-radius:12px;padding:12px;
+  }
+  .hl{color:#9fd1ff}
+  @media (max-width:960px){
+    .grid{grid-template-columns:1fr}
+  }
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="brand">
-        <img src="./iapol-logo.png" alt="IAPol®" onerror="this.style.display='none'">
-        <div>
-          <h1>Análise de Nomes</h1>
-          <!-- Badge com a frase solicitada -->
-          <div class="badge">IAPol® | Inteligência Artificial Policial</div>
+  <header class="wrap">
+    <div class="brand">
+      <div class="logo"><span>IAPol®</span></div>
+      <div>
+        <h1>Análise de Telefone</h1>
+        <p class="subtitle">Inteligência Artificial Policial — Painel OSINT (estático)</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap grid">
+    <!-- COLUNA ESQUERDA: FORM E CONTROLES -->
+    <section class="card">
+      <h3>Consulta OSINT</h3>
+      <div class="body">
+        <div class="row">
+          <div style="flex:1 1 260px">
+            <label for="cpf">CPF (apenas números)</label>
+            <input id="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="Ex.: 12345678900" />
+            <div class="small muted">Será exibido no formato <span class="kbd">123.456.789-00</span> automaticamente.</div>
+          </div>
+          <div style="flex:1 1 260px">
+            <label for="email">E-mail (opcional)</label>
+            <input id="email" type="email" placeholder="Ex.: nome@dominio.com" />
+            <div class="small muted">Usado para consulta no <span class="kbd">epieos.com</span> e dorks por e-mail.</div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:14px">
+          <label class="switch"><input id="xlsonly" type="checkbox" checked />Incluir planilhas (<span class="kbd">filetype:xls,xlsx,csv</span>)</label>
+          <label class="switch"><input id="pdfs" type="checkbox" checked />Incluir PDFs (<span class="kbd">filetype:pdf</span>)</label>
+          <label class="switch"><input id="excludeGov" type="checkbox" checked />Excluir domínios <span class="kbd">gov</span> e termos “brasil”</label>
+          <label class="switch"><input id="safe" type="checkbox" checked />Modo seguro (somente buscas públicas)</label>
+        </div>
+
+        <div class="row" style="margin-top:14px">
+          <button class="btn primary" id="gen">Gerar consultas</button>
+          <button class="btn" id="openAll" title="Abre todos os links gerados em novas abas">Abrir tudo</button>
+          <button class="btn" id="copyAll" title="Copia todas as URLs para a área de transferência">Copiar URLs</button>
+          <button class="btn ok" id="exportCSV">Exportar CSV</button>
+          <button class="btn ghost" id="exportJSON">Exportar JSON</button>
+        </div>
+
+        <div class="disclaimer" style="margin-top:14px">
+          <strong class="warn">Aviso legal:</strong>
+          <div class="small">
+            Esta ferramenta <em>não</em> realiza login, scraping ou acesso indevido. Apenas monta consultas e links
+            públicos (“dorks”) para fins de investigação digital lícita. O uso requer <span class="hl">fundamento jurídico</span>
+            (inquérito, procedimento administrativo, ordem judicial ou consentimento). <span class="danger">É vedado
+            qualquer uso para perseguição, doxing ou violação de privacidade.</span>
+          </div>
         </div>
       </div>
-    </header>
+    </section>
 
-    <div class="card">
-      <p class="sub">Análise e processamento de nomes de pessoas para fins de verificação de origem e constatação.</p>
+    <!-- COLUNA DIREITA: SAÍDA -->
+    <section class="card">
+      <h3>Resultados & Dorks Gerados</h3>
+      <div class="body">
+        <ul id="results" class="list" aria-live="polite"></ul>
 
-      <form onsubmit="return gerar()">
-        <input type="text" id="nome" placeholder="Digite um nome completo para análise" />
-        <button type="submit">Analisar</button>
-      </form>
+        <details>
+          <summary>Atalhos e orientações</summary>
+          <div class="small muted" style="margin-top:8px">
+            Exemplos úteis de dorks:
+            <div class="flex" style="margin-top:8px">
+              <span class="pill"><span class="tag">PDF</span> “CPF” telefone <span class="kbd">filetype:pdf</span></span>
+              <span class="pill"><span class="tag">Planilhas</span> “CPF” telefone <span class="kbd">filetype:xls|xlsx|csv</span></span>
+              <span class="pill"><span class="tag">Domínio</span> “CPF” <span class="kbd">site:cnpj.biz</span></span>
+            </div>
+          </div>
+        </details>
 
-      <!-- Botões de exportação -->
-      <div class="actions" id="exportBar" style="display:none">
-        <button type="button" onclick="exportCSV()">Exportar CSV</button>
-        <button type="button" onclick="exportPDF()">Exportar PDF</button>
+        <div style="margin-top:16px">
+          <table class="table small">
+            <thead><tr><th>Origem</th><th>Descrição</th><th>Ação</th></tr></thead>
+            <tbody id="quicklinks"></tbody>
+          </table>
+        </div>
       </div>
+    </section>
+  </main>
 
-      <div class="grid" id="results"></div>
+  <section class="wrap card" style="margin-top:-6px">
+    <div class="body">
+      <h3>Boas práticas de cadeia de custódia</h3>
+      <div class="cols-2 small">
+        <ul>
+          <li>Registre data/hora, responsável, base legal e finalidade antes da coleta.</li>
+          <li>Capture evidências com <em>hash</em> (ex.: SHA-256) e preserve arquivos originais.</li>
+          <li>Prefira fontes oficiais e guarde links completos das consultas realizadas.</li>
+        </ul>
+        <ul>
+          <li>Evite contas pessoais; use credenciais institucionais.</li>
+          <li>Quando necessário, oficie plataformas para dados cadastrais conforme legislação vigente.</li>
+          <li>Relatórios devem conter contexto, metodologia e limitações.</li>
+        </ul>
+      </div>
+      <p class="footer">© IAPol® • Uso restrito e responsável • Este repositório é estático (GitHub Pages)</p>
     </div>
-
-    <div class="footer">IAPol® · uso responsável (LGPD/leis vigentes)</div>
-  </div>
+  </section>
 
 <script>
-/* ---------- Dorks/links ---------- */
-const tribunais = [
-  ["JusBrasil","https://www.jusbrasil.com.br/busca?q=%Q%"],
-  ["TJ-SP (Google)","https://www.google.com/search?q=site:tjsp.jus.br+%22%Q%%22"],
-  ["TJ-PI (Google)","https://www.google.com/search?q=site:tjpi.jus.br+%22%Q%%22"],
-  ["TJ-RJ (Google)","https://www.google.com/search?q=site:tjrj.jus.br+%22%Q%%22"],
-  ["MPF (Google)","https://www.google.com/search?q=site:mpf.mp.br+%22%Q%%22"],
-  ["CNJ (Google)","https://www.google.com/search?q=site:cnj.jus.br+%22%Q%%22"]
-];
+/* ---------- Utilidades ---------- */
+const el = (sel) => document.querySelector(sel);
+const fmtCPF = (s) => {
+  const n = (s || "").replace(/\D/g, "").slice(0,11);
+  if (n.length <= 3) return n;
+  if (n.length <= 6) return n.replace(/(\d{3})(\d+)/, "$1.$2");
+  if (n.length <= 9) return n.replace(/(\d{3})(\d{3})(\d+)/, "$1.$2.$3");
+  return n.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
+};
+const enc = (s)=>encodeURIComponent(s);
 
-const grupos = [
-  ["Motores", [
-    ["Google","https://www.google.com/search?q=%Q%"],
-    ["Bing","https://www.bing.com/search?q=%Q%"],
-    ["DuckDuckGo","https://duckduckgo.com/?q=%Q%"]
-  ]],
-  ["Redes sociais", [
-    ["Facebook","https://www.facebook.com/search/top?q=%Q%"],
-    ["Instagram","https://www.instagram.com/explore/search/keyword/?q=%Q%"],
-    ["X (Twitter)","https://x.com/search?q=%Q%&src=typed_query"],
-    ["LinkedIn (pessoas)","https://www.linkedin.com/search/results/people/?keywords=%Q%"],
-    ["YouTube","https://www.youtube.com/results?search_query=%Q%"]
-  ]],
-  ["Gov/Oficiais", [
-    ["Gov.br","https://www.google.com/search?q=site:gov.br+%22%Q%%22"],
-    ["Transparência (geral)","https://www.google.com/search?q=site:transparencia.*+%22%Q%%22"],
-    ["Diário Oficial (IN)","https://www.google.com/search?q=site:in.gov.br+%22%Q%%22"],
-    ...tribunais
-  ]],
-  ["Documentos", [
-    ["PDF","https://www.google.com/search?q=filetype:pdf+%22%Q%%22"],
-    ["DOCX","https://www.google.com/search?q=filetype:docx+%22%Q%%22"],
-    ["XLSX","https://www.google.com/search?q=filetype:xlsx+%22%Q%%22"],
-    ["PPT","https://www.google.com/search?q=filetype:ppt+%22%Q%%22"]
-  ]],
-  ["Imagens & mídia", [
-    ["Google Imagens","https://www.google.com/search?tbm=isch&q=%Q%"],
-    ["Bing Imagens","https://www.bing.com/images/search?q=%Q%"]
-  ]]
-];
+/* ---------- Inputs: formatação em tempo real ---------- */
+el("#cpf").addEventListener("input", (e)=>{ e.target.value = fmtCPF(e.target.value); });
 
-/* ---------- Helpers ---------- */
-function fillTpl(nome){ return s => s.replaceAll("%Q%", encodeURIComponent(nome)); }
+/* ---------- Geração de dorks ---------- */
+function buildDorks({ cpf, email, opts }){
+  const out = [];
+  const quotedCPF = `"${cpf}"`;
 
-function montar(nome){
-  const results = document.getElementById("results");
-  const bar = document.getElementById("exportBar");
-  results.innerHTML = "";
-  history.replaceState({}, "", location.pathname + "?q=" + encodeURIComponent(nome));
+  const baseExcludes = opts.excludeGov ? ' -"gov" -site:gov.br -site:*.gov.br -brasil' : '';
+  const qTel = ' telefone OR "telefone" OR celular OR "celular" ';
+  const sheetTypes = '(filetype:xls OR filetype:xlsx OR filetype:csv)';
+  const pdfType = 'filetype:pdf';
 
-  grupos.forEach(([titulo, itens])=>{
-    const box = document.createElement("div");
-    box.className = "group";
-    const h2 = document.createElement("h2"); h2.textContent = titulo;
-    const ul = document.createElement("ul");
-
-    itens.forEach(([label, linkTpl])=>{
-      const li = document.createElement("li");
-      const a = document.createElement("a");
-      a.textContent = label; a.target = "_blank"; a.rel = "noopener";
-      a.href = fillTpl(nome)(linkTpl);
-      li.appendChild(a); ul.appendChild(li);
+  if (opts.pdfs){
+    out.push({
+      origem: "Google",
+      desc: `PDFs com telefone e CPF`,
+      url: `https://www.google.com/search?q=${enc(`${quotedCPF} ${qTel} ${pdfType} ${baseExcludes}`)}`
     });
-
-    box.appendChild(h2); box.appendChild(ul); results.appendChild(box);
+  }
+  if (opts.xlsonly){
+    out.push({
+      origem: "Google",
+      desc: `Planilhas (xls/xlsx/csv) com telefone e CPF`,
+      url: `https://www.google.com/search?q=${enc(`${quotedCPF} ${qTel} ${sheetTypes} ${baseExcludes}`)}`
+    });
+  }
+  // site específico
+  out.push({
+    origem: "Google",
+    desc: `site:cnpj.biz com o CPF`,
+    url: `https://www.google.com/search?q=${enc(`${quotedCPF} site:cnpj.biz ${baseExcludes}`)}`
   });
 
-  bar.style.display = "flex";
+  // Se e-mail fornecido
+  if (email){
+    const qEmail = `"${email}"`;
+    out.push({
+      origem: "Google",
+      desc: `Dorks por e-mail (PDF)`,
+      url: `https://www.google.com/search?q=${enc(`${qEmail} ${pdfType} ${baseExcludes}`)}`
+    });
+    out.push({
+      origem: "Google",
+      desc: `Dorks por e-mail (planilhas)`,
+      url: `https://www.google.com/search?q=${enc(`${qEmail} ${sheetTypes} ${baseExcludes}`)}`
+    });
+  }
+
+  // Atalhos úteis (não realizam scraping)
+  out.push({
+    origem: "mind-7.org",
+    desc: "Sistema de consultas de dados públicos (acesso externo)",
+    url: `https://mind-7.org/`
+  });
+  out.push({
+    origem: "cnpj.biz",
+    desc: "Pesquisar CPF vinculado a MEI (usar busca do site)",
+    url: `https://cnpj.biz/`
+  });
+  if (email){
+    out.push({
+      origem: "epieos.com",
+      desc: "Pesquisa OSINT por e-mail",
+      url: `https://epieos.com/`
+    });
+  }
+
+  return out;
 }
 
-function gerar(){
-  const nome = document.getElementById("nome").value.trim();
-  if(!nome){ alert("Digite um nome completo."); return false; }
-  window.__iapol_nome = nome;
-  montar(nome);
-  return false;
+/* ---------- Renderização ---------- */
+function renderList(items){
+  const ul = el("#results");
+  ul.innerHTML = "";
+  items.forEach((it, idx)=>{
+    const li = document.createElement("li");
+    li.className = "item";
+    li.innerHTML = `
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <div>
+          <span class="tag">${it.origem}</span>
+          <span style="margin-left:8px">${it.desc}</span>
+        </div>
+        <div class="row">
+          <a class="btn" href="${it.url}" target="_blank" rel="noopener">Abrir</a>
+          <button class="btn ghost" data-copy="${idx}">Copiar URL</button>
+        </div>
+      </div>
+      <div class="small muted">${it.url}</div>
+    `;
+    ul.appendChild(li);
+  });
+  ul.addEventListener("click", async (e)=>{
+    const btn = e.target.closest("button[data-copy]");
+    if (!btn) return;
+    const idx = +btn.dataset.copy;
+    try{
+      await navigator.clipboard.writeText(items[idx].url);
+      btn.textContent = "Copiado!";
+      setTimeout(()=>btn.textContent="Copiar URL", 1200);
+    }catch{ alert("Falha ao copiar"); }
+  }, { once:true });
+}
+
+function renderQuicklinks(cpfMasked, email){
+  const tbody = el("#quicklinks");
+  const safeTip = `<span class="muted small">Dica: não acesse contas; use apenas telas públicas.</span>`;
+  const rows = [
+    {
+      origem:"Google",
+      desc:`Pesquisa ampla por CPF`,
+      href:`https://www.google.com/search?q=${enc(`"${cpfMasked}"`)}`
+    },
+    {
+      origem:"Bing",
+      desc:`Pesquisa ampla por CPF`,
+      href:`https://www.bing.com/search?q=${enc(`"${cpfMasked}"`)}`
+    },
+    {
+      origem:"DuckDuckGo",
+      desc:`Pesquisa ampla por CPF`,
+      href:`https://duckduckgo.com/?q=${enc(`"${cpfMasked}"`)}`
+    },
+    ...(email ? [{
+      origem:"Epieos",
+      desc:`Consulta por e-mail (open source)`,
+      href:`https://epieos.com/`
+    }] : []),
+  ];
+  tbody.innerHTML = rows.map(r=>`
+    <tr>
+      <td><span class="tag">${r.origem}</span></td>
+      <td>${r.desc}<div class="small muted">${r.origem==="Google" ? "Use operadores como filetype:, site:, -gov" : ""}</div></td>
+      <td><a class="btn" target="_blank" rel="noopener" href="${r.href}">Abrir</a></td>
+    </tr>
+  `).join("") + `<tr><td></td><td colspan="2">${safeTip}</td></tr>`;
 }
 
 /* ---------- Exportações ---------- */
-function buildData(nome){
-  const make = fillTpl(nome);
-  const data = [];
-  grupos.forEach(([grupo, itens])=>{
-    itens.forEach(([fonte, tpl])=>{
-      data.push({grupo, fonte, url: make(tpl)});
-    });
-  });
-  return data;
-}
-
-function exportCSV(){
-  const nome = window.__iapol_nome || document.getElementById("nome").value.trim();
-  if(!nome){ alert("Gere os resultados antes de exportar."); return; }
-  const rows = buildData(nome);
-  let csv = "NOME;GRUPO;FONTE;URL\n";
-  rows.forEach(r=>{
-    const line = [
-      `"${nome.replace(/"/g,'""')}"`,
-      `"${r.grupo.replace(/"/g,'""')}"`,
-      `"${r.fonte.replace(/"/g,'""')}"`,
-      `"${r.url.replace(/"/g,'""')}"`
-    ].join(";");
-    csv += line + "\n";
-  });
-  const blob = new Blob([csv], {type: "text/csv;charset=utf-8"});
+function download(filename, text, type="text/plain"){
+  const blob = new Blob([text], {type});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `IAPol_Analise_de_Nomes_${nome.replace(/\s+/g,'_')}.csv`;
-  document.body.appendChild(a); a.click(); a.remove();
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
 }
 
-function exportPDF(){
-  const nome = window.__iapol_nome || document.getElementById("nome").value.trim();
-  if(!nome){ alert("Gere os resultados antes de exportar."); return; }
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
-  const margin = 48; let y = margin;
-
-  doc.setFont("helvetica","bold"); doc.setFontSize(16);
-  doc.text("IAPol® — Análise de Nomes", margin, y); y += 18;
-  doc.setFont("helvetica","normal"); doc.setFontSize(12);
-  doc.text(`Nome analisado: ${nome}`, margin, y); y += 8;
-  doc.text(`Data: ${new Date().toLocaleString("pt-BR")}`, margin, y); y += 18;
-
-  const make = fillTpl(nome);
-  doc.setFontSize(11);
-  grupos.forEach(([grupo, itens])=>{
-    if (y > 780) { doc.addPage(); y = margin; }
-    doc.setFont("helvetica","bold"); doc.text(grupo, margin, y); y += 12;
-    doc.setFont("helvetica","normal");
-    itens.forEach(([fonte, tpl])=>{
-      const line = `• ${fonte}: ${make(tpl)}`;
-      const lines = doc.splitTextToSize(line, 515);
-      lines.forEach(ln => { if (y > 800) { doc.addPage(); y = margin; } doc.text(ln, margin, y); y += 14; });
-    });
-    y += 6;
-  });
-
-  if (y > 800) { doc.addPage(); y = margin; }
-  doc.setDrawColor(160); doc.line(margin, 820, 595-margin, 820);
-  doc.setFontSize(9); doc.setTextColor(120);
-  doc.text("IAPol® · uso responsável (LGPD/leis vigentes)", margin, 838);
-
-  doc.save(`IAPol_Analise_de_Nomes_${nome.replace(/\s+/g,'_')}.pdf`);
+function toCSV(rows){
+  const head = ["origem","descricao","url"];
+  const esc = (v)=>`"${String(v).replace(/"/g,'""')}"`;
+  const lines = [head.join(",")].concat(
+    rows.map(r=>[esc(r.origem), esc(r.desc), esc(r.url)].join(","))
+  );
+  return lines.join("\n");
 }
 
-/* ---------- Suporte a URL ?q= ---------- */
-(function init(){
-  const p = new URLSearchParams(location.search);
-  const q = p.get("q");
-  if(q){
-    const nome = decodeURIComponent(q);
-    document.getElementById("nome").value = nome;
-    window.__iapol_nome = nome;
-    montar(nome);
+/* ---------- Ações ---------- */
+let lastItems = [];
+
+el("#gen").addEventListener("click", ()=>{
+  const cpfRaw = el("#cpf").value.replace(/\D/g,"");
+  const email = (el("#email").value || "").trim();
+  if (cpfRaw.length !== 11){
+    alert("Informe um CPF válido (11 dígitos, apenas números).");
+    return;
   }
-})();
+  const cpfMasked = fmtCPF(cpfRaw);
+  const opts = {
+    xlsonly: el("#xlsonly").checked,
+    pdfs: el("#pdfs").checked,
+    excludeGov: el("#excludeGov").checked,
+    safe: el("#safe").checked
+  };
+  lastItems = buildDorks({ cpf: cpfMasked, email, opts });
+
+  renderList(lastItems);
+  renderQuicklinks(cpfMasked, email);
+});
+
+el("#openAll").addEventListener("click", ()=>{
+  if (!lastItems.length){ alert("Gere as consultas primeiro."); return; }
+  lastItems.forEach(i=> window.open(i.url, "_blank", "noopener"));
+});
+
+el("#copyAll").addEventListener("click", async ()=>{
+  if (!lastItems.length){ alert("Gere as consultas primeiro."); return; }
+  try{
+    await navigator.clipboard.writeText(lastItems.map(i=>i.url).join("\n"));
+    alert("Todas as URLs foram copiadas para a área de transferência.");
+  }catch{ alert("Falha ao copiar. Permita acesso à área de transferência."); }
+});
+
+el("#exportCSV").addEventListener("click", ()=>{
+  if (!lastItems.length){ alert("Gere as consultas primeiro."); return; }
+  download("consultas_osint.csv", toCSV(lastItems));
+});
+
+el("#exportJSON").addEventListener("click", ()=>{
+  if (!lastItems.length){ alert("Gere as consultas primeiro."); return; }
+  download("consultas_osint.json", JSON.stringify(lastItems, null, 2), "application/json");
+});
 </script>
 </body>
 </html>
